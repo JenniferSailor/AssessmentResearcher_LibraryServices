@@ -1,0 +1,258 @@
+---
+title: "Library_Services_DA"
+author: "Jennifer Sailor"
+date: "Feb 17, 2022"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+library(tidytext)
+
+#library(lubridate) #handles dates well
+#library(dslabs)
+
+#library(janeaustenr)
+library("wordcloud")
+#install.packages("RColorBrewer")
+#library(RColorBrewer)
+#install.packages("Rcpp")
+#library(Rcpp)
+```
+
+Start with just the Text Files
+Then maybe try doing a data frame
+Could see who spoke more and stuff like that.. not sure if that is important
+
+Ending up doing a dataframe via a csv file:
+```{r}
+LS <- read.csv("LS_Data.csv")
+LS
+```
+#Question 1: what topic and words were most prevalent in the focus groups?
+```{r}
+LS_df <- filter(LS, topic != "Introduction")
+LS_df
+```
+
+
+
+n = the amount of rows; however, each row could have multiple sentences so lets go off of how many words were spoken to get a better idea.
+First we mus tokenize - break the text into individual tokens - using the unest_tokens function
+```{r}
+#using the unnest_tokens function, tokenize i.e. break the text into individual tokens.  Use str()  to get familiar with the new dataframe...  Use sample_n() to show a few random rows of tidy_books
+ LS_tidy <- LS_df %>% 
+  unnest_tokens(word, text)
+#str(LS_tidy)
+sample_n(LS_tidy, 10)
+
+LS_tidy %>% count(topic) %>% arrange(desc(n))
+LS_tidy %>% count(speaker) %>% arrange(desc(n))
+```
+
+Now remove stop words such as the word "as" or "and"
+
+```{r}
+#remove stop_words from the tidy_books you created above, and name it tidy_books_2.  Use sample_n() to show a few random rows of tidy_books_2
+ LS_tidy2 <- LS_tidy %>% 
+  filter(!word %in% stop_words$word ) 
+str(LS_tidy2)
+sample_n(LS_tidy2, 10)
+
+```
+
+Now that it is all cleaned up we can now look at who spoke the most / what topics were spoken the most based on the number of words.
+```{r}
+#using count() and arrange() to organize the amount of times a speaker spoke and how many topics:
+
+#LS_tidy2 %>% count(speaker) %>% arrange(desc(n))
+LS_tidy2 %>% count(topic) %>% arrange(desc(n))
+```
+
+What was the most common word and topics and make them into a vizualization representaton
+```{r}
+#Find the most common words in all of the topics as a whole, and sort them in descending order.   
+LS_tidy2 %>% 
+  count(word)  %>%
+  top_n(50, n)  %>%
+  mutate(word = reorder(word, n))%>%
+  arrange(desc(n))
+
+```
+```{r}
+#Create a visualization of the most common words (which was created above).
+#have taken out stop words
+LS_tidy2 %>%
+        count(word, sort = TRUE) %>%
+        top_n(10) %>%
+        ggplot(aes(x = reorder(word, n), y = n)) +
+         geom_bar(stat = "identity") +
+         coord_flip() +
+         labs(x = "Non Stop Words", y = "Number of Times Word Was Spoken")
+
+```
+
+```{r}
+#Create a visualization of the most common words (which you created in #3 above).
+#did not take out stop words
+LS_topic_arrange <- LS_tidy %>%
+        count(topic, sort = TRUE) #%>%
+        #ggplot(aes(x = reorder(topic, n), y = n)) +
+         #geom_bar(stat = "identity") +
+         #coord_flip() +
+         #labs(x = "Topic", y = "Number of Words")
+LS_topic_arrange
+```
+
+```{r}
+LS_tidyfeb16 <- filter(LS_tidy, ï..date_focus_group == "2/16/2022")
+LS_tidyfeb1 <- filter(LS_tidy, ï..date_focus_group == "2/1/2022")
+
+```
+```{r}
+LS_tidy %>%
+        count(topic, sort = TRUE) %>%
+        ggplot(aes(x = reorder(topic, n), y = n)) +
+         geom_bar(stat = "identity") +
+         coord_flip() +
+         labs(x = "Topic", y = "Number of Words", title = "Number of Words Spoken By Each Topic") 
+LS_tidyfeb1 %>%
+        count(topic, sort = TRUE) %>%
+        ggplot(aes(x = reorder(topic, n), y = n)) +
+         geom_bar(stat = "identity") +
+         coord_flip() +
+         labs(x = "Topic", y = "Number of Words", title = "Number of Words with Stop Words by Topic February 1") 
+LS_tidyfeb16 %>%
+        count(topic, sort = TRUE) %>%
+        ggplot(aes(x = reorder(topic, n), y = n)) +
+         geom_bar(stat = "identity") +
+         coord_flip() +
+         labs(x = "Topic", y = "Number of Words", title = "Number of Words with Stop Words by Topic February 16")
+```
+```{r}
+ggplot(data = LS_tidy, mapping = aes(x = topic, fill = ï..date_focus_group))+ coord_flip() +
+         labs(x = "Topic", y = "Number of Words", fill = "Date of Focus Group", title = "The Number of Words Spoken About Each Topic") +  geom_bar() + scale_fill_manual(values = c("black", "#b5a36a"))
+
+```
+
+
+#Wordcloud vizualizations
+```{r}
+#Let's tokenize -  break the text into individual tokens.
+# we use unnest_tokens() function.  This is from the tidytext 
+
+LS_tidy2 %>%
+  count(word) %>%
+  arrange(desc(n))%>%
+  with(wordcloud(word, n, min.freq = 10,  rot.per = .2, max.words = 25))
+
+```
+
+```{r}
+#Let's tokenize -  break the text into individual tokens.
+# we use unnest_tokens() function.  This is from the tidytext 
+
+LS_tidy %>%
+  count(topic) %>%
+  arrange(desc(n))%>%
+  with(wordcloud(topic, n, min.freq = 0,  rot.per = .2, max.words = 100))
+```
+#2. What sentiment is attatched to each topic
+```{r}
+lexnrc <- get_sentiments("nrc")
+sample_n(lexnrc, 10)
+```
+
+```{r}
+#Note that some words may have multiple sentiment
+#Eg. Filter the word love
+lexnrc %>% filter(word == "love")
+```
+
+
+
+```{r}
+# Using the nrc lexicon, let's analyize the sentiment of the word in tidy_books_2. 
+# Use inner_join to combine the words of tidy_books_2 with sentiments in the nrc lexicon, and give it a name tidy_books_3
+
+LS_tidy3 <- LS_tidy2 %>% inner_join(lexnrc, by = "word") %>% 
+  select(ï..date_focus_group, word, topic, sentiment)
+LS_tidy3
+
+```
+
+
+
+```{r}
+#Perform a sentiment count on tidy_books_3. 
+#Use the count() function
+#You output should have the following cols: speaker, sentiment, n (where is count)
+
+#LS_tidy3  %>% count(speaker, sentiment) %>% arrange(desc(n))
+LS_tidy3  %>% count(topic, sentiment) %>% arrange(desc(n))
+
+```
+```{r}
+sentiment_counts <- LS_tidy3 %>%
+  count(topic, sentiment) %>%
+  spread(topic, n) %>%
+  mutate(sentiment = replace_na(sentiment, replace = "none"))
+sentiment_counts
+
+```
+
+Lets combine anger,  disgust, fear, negative, sadness into one category and postive, joy, suprise, anticipation,and trust into another.
+
+```{r}
+pos <- sentiment_counts[cbind(2,5,7,9,10),]
+neg <- sentiment_counts[cbind(1,3,4,6,8),]
+```
+
+```{r}
+print("Sum of Positive Sentiments")
+colSums(Filter(is.numeric, pos), na.rm = TRUE)
+print("Sum of Negative Sentiments")
+colSums(Filter(is.numeric, neg), na.rm = TRUE)
+```
+
+
+```{r}
+topic <- c("Archives", "Books", "Building", "Career_Services", "Database", "Game_Room", "Honors", "Hours", "IT", "Marketing", "Off_Topic", "Other_Programs", "Printing", "Question", "SASS", "Starbucks", "Student_ID", "Studying", "Theater", "UNIV", "Writing_Center")
+pos_Sum <- c(1,12,60,99,7,9,1,134,8,51,18,62,2,62,16,2,3,40,9,37,4)
+neg_Sum <- c(0,0,21,11,0,4,0,40,4,3,0,1,3,18,0,3,0,31,5,4,0)
+sentiment_sum <- data.frame(topic, pos_Sum, neg_Sum)
+sentiment_sum
+sum(sentiment_sum$pos_Sum)
+sum(sentiment_sum$neg_Sum)
+```
+
+```{r}
+sentiment_percent <- mutate(sentiment_sum, percent_pos = round(pos_Sum/(pos_Sum+neg_Sum)*100,2), percent_neg = 100 - percent_pos)
+sentiment_percent <- select(sentiment_percent, topic, percent_pos, percent_neg)
+sentiment_percent %>% arrange(desc(percent_pos))
+```
+
+```{r}
+LS_tidy4 <- LS_tidy3
+LS_tidy4$sentiment <- factor(LS_tidy3$sentiment, levels = c("anger", "disgust", "fear", "negative", "sadness", "anticipation", "joy", "positive", "surprise", "trust"))
+ggplot(data = LS_tidy4, mapping = aes(x = topic, fill = sentiment))+ coord_flip() +
+         labs(x = "Topic", y = "Number of Words", fill = "Sentiment", title = "The Number of Sentiment Words Spoken About Each Topic") +  geom_bar()
+ggplot(data = LS_tidy4, mapping = aes(x = topic, fill = sentiment))+ coord_flip() +
+         labs(x = "Topic", y = "Number of Words", fill = "Sentiment", title = "The Number of Sentiment Words Spoken About Each Topic") +  geom_bar()+ scale_fill_manual(values = c("black","black","black","black","black", "#FFD700", "#FFD700", "#FFD700", "#FFD700", "#FFD700" ))
+```
+
+#3 What sentiments were attached to the top topics?
+
+```{r}
+filter(LS_tidy3, topic == "Hours") %>% arrange(sentiment) #81/19
+filter(LS_tidy3, topic == "Marketing") %>% arrange(sentiment)#98/2
+filter(LS_tidy3, topic == "Building") %>% arrange(sentiment)#57/42
+
+filter(LS_tidy3, topic == "IT") %>% arrange(sentiment)#18/82
+filter(LS_tidy3, topic == "Printing") %>% arrange(sentiment)#7/93
+filter(LS_tidy3, topic == "Theater") %>% arrange(sentiment)#15/85
+```
+
+
+
+
