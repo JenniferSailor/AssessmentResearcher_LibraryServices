@@ -10,6 +10,7 @@ Keywords:
 Data Analytics, RStudio, Research, NLP
 
 Responsibilities:
+- (to be added soon ...)
 
 Links:
 https://digitalcommons.lindenwood.edu/src/Posters/Session2/1/
